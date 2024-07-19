@@ -5,6 +5,8 @@ import (
 	"image"
 	"image/jpeg"
 	"os"
+
+	blurry "github.com/octu0/blurry"
 )
 
 // PSEUDOCODE
@@ -27,7 +29,15 @@ func main() {
 		return
 	}
 	fmt.Println("decoded the image")
-	fmt.Println(myImage)
+
+	blurredImage, err := blurrifyImage(myImage)
+	if err != nil {
+		fmt.Println("Error blurring image")
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(blurredImage)
 }
 
 func decodeImage(filePath string) (image.Image, error) {
@@ -57,4 +67,14 @@ func decodeImage(filePath string) (image.Image, error) {
 	}
 
 	return nil, fmt.Errorf("image type not supported")
+}
+
+func blurrifyImage(imageToBlur image.Image) (*image.RGBA, error) {
+	rgbaImage := image.NewRGBA(imageToBlur.Bounds())
+	img, err := blurry.Gaussianblur(rgbaImage, 5.0)
+	if err != nil {
+		fmt.Println("Error blurring image")
+		return nil, err
+	}
+	return img, nil
 }
