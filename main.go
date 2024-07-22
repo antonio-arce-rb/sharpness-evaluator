@@ -6,7 +6,7 @@ import (
 	"image/jpeg"
 	"os"
 
-	blurry "github.com/octu0/blurry"
+	imaging "github.com/disintegration/imaging"
 )
 
 // PSEUDOCODE
@@ -19,7 +19,7 @@ import (
 // apply laplacian matrix
 // convolute and return laplacian variance
 
-const TestFilepath string = "images/best-seller-poster/13060191.jpg"
+const TestFilepath string = "images/best-seller-poster/test3.jpeg"
 
 func main() {
 	myImage, err := decodeImage(TestFilepath)
@@ -30,14 +30,26 @@ func main() {
 	}
 	fmt.Println("decoded the image")
 
-	blurredImage, err := blurrifyImage(myImage)
+	blurredImage := blurrifyImage(myImage)
+	//if err != nil {
+	//	fmt.Println("Error blurring image")
+	//	fmt.Println(err)
+	//	return
+	//}
+	grayscaledImage := grayscaleImage(blurredImage)
+	laplacianImage := convolveImage(grayscaledImage)
+	output_path := "images/results/foobar.jpeg"
+	outFile, err := os.Create(output_path)
 	if err != nil {
-		fmt.Println("Error blurring image")
-		fmt.Println(err)
-		return
+		_, _ = fmt.Fprintf(os.Stderr, "could not create output file: %v\n", err)
+		os.Exit(2)
 	}
+	defer outFile.Close()
 
-	fmt.Println(blurredImage)
+	err = jpeg.Encode(outFile, laplacianImage, &jpeg.Options{Quality: 100})
+	if err != nil {
+		panic(err) // Handle error properly in real code
+	}
 }
 
 func decodeImage(filePath string) (image.Image, error) {
@@ -69,12 +81,28 @@ func decodeImage(filePath string) (image.Image, error) {
 	return nil, fmt.Errorf("image type not supported")
 }
 
-func blurrifyImage(imageToBlur image.Image) (*image.RGBA, error) {
-	rgbaImage := image.NewRGBA(imageToBlur.Bounds())
-	img, err := blurry.Gaussianblur(rgbaImage, 5.0)
-	if err != nil {
-		fmt.Println("Error blurring image")
-		return nil, err
-	}
-	return img, nil
+func blurrifyImage(imageToBlur image.Image) *image.NRGBA {
+	img := imaging.Blur(imageToBlur, 1.0)
+
+	return img
+}
+
+func grayscaleImage(imageToBlur image.Image) *image.NRGBA {
+	img := imaging.Grayscale(imageToBlur)
+
+	return img
+}
+
+func convolveImage(imageToBlur image.Image) *image.NRGBA {
+	img := imaging.Convolve3x3(
+		imageToBlur,
+		[9]float64{
+			0, -1, 0,
+			-1, 4, -1,
+			0, -1, 0,
+		},
+		nil,
+	)
+
+	return img
 }
